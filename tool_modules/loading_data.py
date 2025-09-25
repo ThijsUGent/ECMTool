@@ -12,7 +12,7 @@ ZIP_FILES = {
     },
     "WIND": {
         "url": "https://zenodo.org/api/records/8340501/files/EMHIRES_WIND_ONSHORE_NUTS2.zip/content",
-        "file": "EMHIRES_WIND_NUTS2_June2019.csv",
+        "file": "EMHIRES_WIND_NUTS2_June2019.xlsx",
     },
     "PV": {
         "url": "https://zenodo.org/api/records/8340501/files/EMHIRES_PV_NUTS2.zip/content",
