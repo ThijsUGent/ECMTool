@@ -19,18 +19,24 @@ def profile_load():
 
     # --- Step 1: Button to trigger loading ---
     # Check if data is loaded
-    if "archives" not in st.session_state:
-        st.warning("Please download the time series data on Page 2 (`2_RES2Go session.py`) first.")
 
+
+required_keys = {"WIND", "PV", "ENSPRESO"}
+    
+    if "archives" not in st.session_state or not required_keys.issubset(st.session_state["archives"].keys()):
+        st.warning("Please download the time series data on Page 2 (`2_RES2Go session.py`) first.")
+    
         # Provide a clickable link to the other page
         st.page_link("pages/2_RES2Go Session.py", label=" **RES2Go Session** ",
-             icon="👤", use_container_width=True)
-
+                     icon="👤", use_container_width=True)
+    
         # Stop this page until data exists
         st.stop()
 
     # --- Step 2: once archives are loaded, show the rest of the app ---
     archives = st.session_state.archives
+    
+    
 
 
     # col1 = selection and parameters, col2 = plot
