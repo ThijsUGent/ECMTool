@@ -162,13 +162,6 @@ dict_product_by_sector_AIDRES = {
 
 def map_per_pathway():
     st.subheader("Maps - European scale")
-    
-    if "map_view_state" not in st.session_state:
-        st.session_state.map_view_state = {
-            "latitude": 50.85,  # default lat
-            "longitude": 4.35,  # default lon
-            "zoom": 5
-        }
 
     if "Pathway name" not in st.session_state or not st.session_state["Pathway name"]:
         st.info("No selections stored yet.")
@@ -354,6 +347,31 @@ def map_per_pathway():
                 dict_gdf[pathway] = dict_gdf[pathway][
                     dict_gdf[pathway]["nuts3_code"].str[:2].isin(country_codes)
                 ]
+        st.divider()
+
+
+        
+        # # Bind sliders directly to session_state
+        # st.session_state.map_view_state["zoom"] = st.slider(
+        #     "Zoom",
+        #     min_value=1,
+        #     max_value=20,
+        #     value=st.session_state.map_view_state["zoom"]
+        # )
+
+        # st.session_state.map_view_state["longitude"] = st.slider(
+        #     "Move Left/Right",
+        #     min_value=-180.0,
+        #     max_value=180.0,
+        #     value=st.session_state.map_view_state["longitude"]
+        # )
+
+        # st.session_state.map_view_state["latitude"] = st.slider(
+        #     "Move Up/Down",
+        #     min_value=-90.0,
+        #     max_value=90.0,
+        #     value=st.session_state.map_view_state["latitude"]
+        # )
 
     with col2:
         col_map_param, col_layers = st.columns([2, 1])
@@ -496,7 +514,6 @@ def map_per_pathway():
                 emission, unit_CO2 = energy_convert(emission, "t", elec=False)
                 st.write(
                     f"Direct CO2 emissions per annum : {emission:.2f} {unit_CO2}")
-            st.write(st.session_state["map_view_state"])
             with st.expander("Time profiles"):
                 # Step 1: Extract NUTS3 codes 
                 #2013

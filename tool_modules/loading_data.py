@@ -3,9 +3,8 @@ import requests
 from zipfile import ZipFile
 from io import BytesIO
 import pandas as pd
-import time
-from urllib.parse import urlparse
 
+# Define the datasets
 ZIP_FILES = {
     "ENSPRESO": {
         "url": "https://cidportal.jrc.ec.europa.eu/ftp/jrc-opendata/ENSPRESO/ENSPRESO_Integrated_Data.zip",
@@ -21,29 +20,43 @@ ZIP_FILES = {
     },
 }
 
+# Initialize session state
+if "archives" not in st.session_state:
+    st.session_state.archives = {}
 
-def fetch_file_from_zip(url: str, target_file: str, dataset_name: str) -> pd.DataFrame:
-    """
-    Download a ZIP and return the target file as a DataFrame.
-    
-    dataset_name: "PV", "WIND", or "ENSPRESO" to select which columns to read.
-    """
+st.title("⬇️ Download Time Series Data")
+
+def fetch_file_from_zip_with_progress(url: str, target_file: str, dataset_name: str):
+    """Download a ZIP file and return the target file as a DataFrame with progress."""
     response = requests.get(url, stream=True)
     response.raise_for_status()
-    buffer = BytesIO(response.content)
 
+    total_length = int(response.headers.get("content-length", 0))
+    buffer = BytesIO()
+    downloaded = 0
+
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+
+    for chunk in response.iter_content(chunk_size=8192):
+        if chunk:
+            buffer.write(chunk)
+            downloaded += len(chunk)
+            percent = downloaded / total_length
+            progress_bar.progress(percent)
+            status_text.text(f"Downloading... {percent*100:.1f}%")
+
+    buffer.seek(0)
     with ZipFile(buffer) as zf:
         if target_file not in zf.namelist():
             raise FileNotFoundError(f"{target_file} not found in ZIP")
         with zf.open(target_file) as f:
             if target_file.endswith(".csv"):
                 return pd.read_csv(f, sep=";")
-            else:  # Excel
+            else:
                 if dataset_name == "PV":
-                    # Keep only 'time_step' and a specific column like 'BE23'
                     return pd.read_excel(f, usecols=lambda x: x == "time_step" or x in ["BE23"])
                 elif dataset_name == "WIND":
-                    # Keep only 'Time step' and a specific column like 'BE23'
                     return pd.read_excel(f, usecols=lambda x: x in ["Time step", "BE23"])
                 else:
                     return pd.read_excel(f)

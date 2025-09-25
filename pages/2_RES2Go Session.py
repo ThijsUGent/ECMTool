@@ -1,9 +1,9 @@
 import streamlit as st
 import pandas as pd
-import concurrent.futures
 from io import BytesIO
-from tool_modules.loading_data import ZIP_FILES, fetch_file_from_zip
-import concurrent.futures
+from zipfile import ZipFile
+import requests
+from tool_modules.loading_data import ZIP_FILES
 
 # ------------------ Main Streamlit Page ------------------
 
@@ -18,8 +18,6 @@ if st.session_state:
         if "Pathway name" in st.session_state:
             st.subheader("📂 Pathway")
             pathways_list = list(st.session_state["Pathway name"].keys())
-
-            # Remove pathway
             if pathways_list:
                 selected_pathway = st.selectbox(
                     "Select a pathway to remove:", pathways_list, key="remove_pathway"
@@ -29,8 +27,6 @@ if st.session_state:
                     st.success(f"Pathway **{selected_pathway}** removed from session.")
                     st.rerun()
 
-            pathways_list = list(st.session_state["Pathway name"].keys())
-            if pathways_list:
                 tab_list = st.tabs(pathways_list)
                 for i, pathway in enumerate(pathways_list):
                     with tab_list[i]:
@@ -57,8 +53,6 @@ if st.session_state:
         if "Cluster name" in st.session_state:
             st.subheader("📍 Cluster")
             cluster_list = list(st.session_state["Cluster name"].keys())
-
-            # Remove cluster
             if cluster_list:
                 selected_cluster = st.selectbox(
                     "Select a cluster to remove:", cluster_list, key="remove_cluster"
@@ -68,8 +62,6 @@ if st.session_state:
                     st.success(f"Cluster **{selected_cluster}** removed from session.")
                     st.rerun()
 
-            cluster_list = list(st.session_state["Cluster name"].keys())
-            if cluster_list:
                 tab_list = st.tabs(cluster_list)
                 for i, cluster in enumerate(cluster_list):
                     with tab_list[i]:
@@ -80,45 +72,55 @@ if st.session_state:
 else:
     st.info("Session state is currently empty.")
 
+
 # --- Data Download Section ---
-
-
 st.title("⬇️ Download Time Series Data")
-
-# Executor for background downloads
-if "executor" not in st.session_state:
-    st.session_state.executor = concurrent.futures.ThreadPoolExecutor(max_workers=2)
-
-if "download_futures" not in st.session_state:
-    st.session_state.download_futures = {}
 
 if "archives" not in st.session_state:
     st.session_state.archives = {}
 
-# Start downloads
+def fetch_file_from_zip_with_progress(url: str, target_file: str, dataset_name: str):
+    response = requests.get(url, stream=True)
+    response.raise_for_status()
+    total_length = int(response.headers.get("content-length", 0))
+    buffer = BytesIO()
+    downloaded = 0
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+
+    for chunk in response.iter_content(chunk_size=8192):
+        if chunk:
+            buffer.write(chunk)
+            downloaded += len(chunk)
+            percent = downloaded / total_length
+            progress_bar.progress(percent)
+            status_text.text(f"Downloading {dataset_name}... {percent*100:.1f}%")
+
+    buffer.seek(0)
+    with ZipFile(buffer) as zf:
+        if target_file not in zf.namelist():
+            raise FileNotFoundError(f"{target_file} not found in ZIP")
+        with zf.open(target_file) as f:
+            if target_file.endswith(".csv"):
+                return pd.read_csv(f, sep=";")
+            else:
+                if dataset_name == "PV":
+                    return pd.read_excel(f, usecols=lambda x: x == "time_step" or x in ["BE23"])
+                elif dataset_name == "WIND":
+                    return pd.read_excel(f, usecols=lambda x: x in ["Time step", "BE23"])
+                else:
+                    return pd.read_excel(f)
+
+
 for name, info in ZIP_FILES.items():
-    if name not in st.session_state.archives and name not in st.session_state.download_futures:
+    if name not in st.session_state.archives:
         if st.button(f"⬇️ Download {name}"):
-            future = st.session_state.executor.submit(
-    fetch_file_from_zip, info["url"], info["file"], name  
-)
-            st.session_state.download_futures[name] = future
-            st.rerun()
+            df = fetch_file_from_zip_with_progress(info["url"], info["file"], name)
+            st.session_state.archives[name] = df
+            st.success(f"{name} downloaded! Shape: {df.shape}")
+            st.dataframe(df.head())
 
-# Show progress / completed
-for name, future in list(st.session_state.download_futures.items()):
-    if future.done():
-        try:
-            st.session_state.archives[name] = future.result()
-            st.success(f"✅ {name} downloaded and ready!")
-        except Exception as e:
-            st.error(f"❌ Failed to download {name}: {e}")
-        del st.session_state.download_futures[name]
-    else:
-        st.info(f"⏳ {name} is still downloading...")
-
-# Preview
-# Preview summary with first 5 rows
+# Preview already downloaded datasets
 if st.session_state.archives:
     st.write("### 📂 Available Archives")
     for dataset, df in st.session_state.archives.items():
