@@ -3,7 +3,7 @@ import pandas as pd
 from io import BytesIO
 from zipfile import ZipFile
 import requests
-from tool_modules.loading_data import ZIP_FILES
+from tool_modules.loading_data import *
 
 # ------------------ Main Streamlit Page ------------------
 
@@ -76,45 +76,23 @@ else:
 # --- Data Download Section ---
 st.title("⬇️ Download Time Series Data")
 
+# Initialize archives if not present
 if "archives" not in st.session_state:
     st.session_state.archives = {}
 
-def fetch_file_from_zip_with_progress(url: str, target_file: str, dataset_name: str):
-    response = requests.get(url, stream=True)
-    response.raise_for_status()
-    total_length = int(response.headers.get("content-length", 0))
-    buffer = BytesIO()
-    downloaded = 0
-    progress_bar = st.progress(0)
-    status_text = st.empty()
-
-    for chunk in response.iter_content(chunk_size=8192):
-        if chunk:
-            buffer.write(chunk)
-            downloaded += len(chunk)
-            percent = downloaded / total_length
-            progress_bar.progress(percent)
-            status_text.text(f"Downloading {dataset_name}... {percent*100:.1f}%")
-
-    buffer.seek(0)
-    with ZipFile(buffer) as zf:
-        if target_file not in zf.namelist():
-            raise FileNotFoundError(f"{target_file} not found in ZIP")
-        with zf.open(target_file) as f:
-            if target_file.endswith(".csv"):
-                return pd.read_csv(f, sep=";")
-            else:
-                if dataset_name == "PV":
-                    return pd.read_excel(f, usecols=lambda x: x == "time_step" or x in ["BE23"])
-                elif dataset_name == "WIND":
-                    return pd.read_excel(f, usecols=lambda x: x in ["Time step", "BE23"])
-                else:
-                    return pd.read_excel(f)
-
-
+# Loop through each dataset and check if it's already downloaded
 for name, info in ZIP_FILES.items():
-    if name not in st.session_state.archives:
-        st.session_state.archives[name] = {}
-        file_obj = fetch_file_from_zip_to_bytes(info["url"], info["file"])
-        st.session_state.archives[name][info["file"]] = file_obj
-        st.success(f"{name} downloaded and ready!")
+    # Check if dataset exists in session state
+    if name in st.session_state.archives and info["file"] in st.session_state.archives[name]:
+        st.success(f"{name} is already downloaded ✅")
+    else:
+        # Show download button for this specific dataset
+        if st.button(f"⬇️ Download {name}", key=f"download_{name}"):
+            # Ensure nested dict exists
+            if name not in st.session_state.archives:
+                st.session_state.archives[name] = {}
+
+            # Download the file
+            file_obj = fetch_file_from_zip_to_bytes(info["url"], info["file"])
+            st.session_state.archives[name][info["file"]] = file_obj
+            st.success(f"{name} downloaded and ready!")
