@@ -1,0 +1,5 @@
+.node-label {
+    fill: rgb(0, 0, 0) !important;       /* Black text */
+    text-shadow: none !important;        /* Remove shadows */
+    font-size: 16px !important;          /* Set font size */
+}

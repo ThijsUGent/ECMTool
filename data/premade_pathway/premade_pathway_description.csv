@@ -1,0 +1,7 @@
+Scenario,Description,Reference,ReferenceURL
+EU-MIX-2018,"Baseline energy mix for Europe in 2018, representing current renewable and fossil fuel shares.",AIDRES,https://op.europa.eu/en/publication-detail/-/publication/577d820d-5115-11ee-9220-01aa75ed71a1
+EU-MIX-2030,"Projected energy mix in 2030 with increased renewable penetration and gradual fossil phase-out.",AIDRES,https://op.europa.eu/en/publication-detail/-/publication/577d820d-5115-11ee-9220-01aa75ed71a1
+EU-MIX-2040,"Energy mix projection for 2040, showing further decarbonisation and clean energy uptake.",AIDRES,https://op.europa.eu/en/publication-detail/-/publication/577d820d-5115-11ee-9220-01aa75ed71a1
+EU-MIX-2050,"Long-term scenario for 2050 focusing on near-zero emissions with high renewables share.",AIDRES,https://op.europa.eu/en/publication-detail/-/publication/577d820d-5115-11ee-9220-01aa75ed71a1
+IEA Net Zero Emissions Scenario,"Sector-specific scenario for chemicals and steel aiming for net-zero emissions by 2050.",IEA,https://www.iea.org/reports/primary-chemicals#dashboard
+Electrification ECM Scenario,"Electrification pathway based on EU-MIX-2050, emphasising electric energy use in industry.",
