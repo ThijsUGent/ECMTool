@@ -21,7 +21,7 @@ def profile_load():
     # Check if data is loaded
 
 
-required_keys = {"WIND", "PV", "ENSPRESO"}
+    required_keys = {"WIND", "PV", "ENSPRESO"}
     
     if "archives" not in st.session_state or not required_keys.issubset(st.session_state["archives"].keys()):
         st.warning("Please download the time series data on Page 2 (`2_RES2Go session.py`) first.")
