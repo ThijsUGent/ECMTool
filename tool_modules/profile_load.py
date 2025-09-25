@@ -5,6 +5,7 @@ import numpy as np
 import calendar
 import plotly.express as px
 from tool_modules.loading_data import *
+
 country_offshore = [
     "BE", "BG", "HR", "CY", "DK", "EE", "FI", "FR", "DE", "EL",
     "IE", "IT", "LV", "LT", "MT", "NL", "PL", "PT", "RO", "ES",
@@ -30,6 +31,11 @@ def profile_load():
 
     # --- Step 2: once archives are loaded, show the rest of the app ---
     archives = st.session_state.archives
+
+    file_obj = archives["ENSPRESO"]["ENSPRESO_Integrated_NUTS2_Data.csv"]
+    file_obj.seek(0)  # rewind to start
+    df = pd.read_csv(file_obj, sep = ';')
+    st.write(df)
 
     # col1 = selection and parameters, col2 = plot
     col1, col2 = st.columns([1, 2])

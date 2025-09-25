@@ -103,9 +103,17 @@ def _get_radius(df):
     return radius_series, thresholds
 
 
-def matching_NUTS2(list_sites):
+
+@st.cache_resource(show_spinner=False)
+def get_NUTS2_polygons():
+    """Download and cache the NUTS2 polygons (2013)."""
     url = "https://gisco-services.ec.europa.eu/distribution/v2/nuts/geojson/NUTS_RG_01M_2013_4326_LEVL_2.geojson"
-    gdf_polygon_NUTS2_2013 = gpd.read_file(url)
+    return gpd.read_file(url)
+
+
+def matching_NUTS2(list_sites):
+    # ✅ Cached instead of fetching each time
+    gdf_polygon_NUTS2_2013 = get_NUTS2_polygons()
 
     # Ensure list_sites is a GeoDataFrame in EPSG:4326
     if not isinstance(list_sites, gpd.GeoDataFrame):
@@ -120,7 +128,6 @@ def matching_NUTS2(list_sites):
 
     # Spatial join to assign NUTS2 regions
     result = gpd.sjoin(list_sites, gdf_polygon_NUTS2_2013, how="left", predicate="intersects")
-
 
     # Return only relevant columns (site + matched NUTS2 code)
     gdf_list_NUTS2_cluster = result[["geometry", "NUTS_ID", "NAME_LATN"]].drop_duplicates()
@@ -155,10 +162,18 @@ dict_product_by_sector_AIDRES = {
 
 def map_per_pathway():
     st.subheader("Maps - European scale")
+    
+    if "map_view_state" not in st.session_state:
+        st.session_state.map_view_state = {
+            "latitude": 50.85,  # default lat
+            "longitude": 4.35,  # default lon
+            "zoom": 5
+        }
 
     if "Pathway name" not in st.session_state or not st.session_state["Pathway name"]:
         st.info("No selections stored yet.")
         return
+    
     AIDRES_Data_check = False
     # Loop over ALL pathways
     for pathway, pathway_dict in st.session_state["Pathway name"].items():
@@ -979,12 +994,12 @@ def _mapping_chart_per_ener_feed_cluster(gdf, color_map, unit, extra_layer = Non
         }
     }
 
-    # Define initial view state of the map (centered on mean lat/lon).
+    # Define view state from session state
     view_state = pdk.ViewState(
-        latitude=gdf["lat"].mean(),
-        longitude=gdf["lon"].mean(),
-        zoom=5
-    )
+    latitude=st.session_state.map_view_state["latitude"],
+    longitude=st.session_state.map_view_state["longitude"],
+    zoom=st.session_state.map_view_state["zoom"]
+)
 
     # Use session state to toggle legend visibility.
 
@@ -1003,6 +1018,15 @@ def _mapping_chart_per_ener_feed_cluster(gdf, color_map, unit, extra_layer = Non
             tooltip=tooltip,
             map_style=None,
         )
+
+        # Update session_state when the user interacts or map loads
+        if event.view_state:
+            st.session_state.map_view_state.update({
+                "latitude": event.view_state.latitude,
+                "longitude": event.view_state.longitude,
+                "zoom": event.view_state.zoom
+            })
+
         event = st.pydeck_chart(
             deck, selection_mode="single-object", on_select="rerun")
 
@@ -1172,11 +1196,12 @@ def _mapping_chart_per_ener_feed_sites(gdf, color_choice, gdf_layer,):
         pickable=True
     )
 
+    # Define view state from session state
     view_state = pdk.ViewState(
-        latitude=gdf["lat"].mean(),
-        longitude=gdf["lon"].mean(),
-        zoom=5
-    )
+    latitude=st.session_state.map_view_state["latitude"],
+    longitude=st.session_state.map_view_state["longitude"],
+    zoom=st.session_state.map_view_state["zoom"]
+)
     legend_site_html_vertical = """
 <style>
 .legend-horizontal {
@@ -1231,6 +1256,14 @@ def _mapping_chart_per_ener_feed_sites(gdf, color_choice, gdf_layer,):
             tooltip={"text": "Cluster: {cluster}\nSite Name: {site_name}"},
             map_style=None
         )
+        # Update session_state when the user interacts or map loads
+        if event.view_state:
+            st.session_state.map_view_state.update({
+                "latitude": event.view_state.latitude,
+                "longitude": event.view_state.longitude,
+                "zoom": event.view_state.zoom
+            })
+            
         event = st.pydeck_chart(
             chart,
             selection_mode="single-object",

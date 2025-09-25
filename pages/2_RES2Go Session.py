@@ -2,50 +2,8 @@ import streamlit as st
 import pandas as pd
 import concurrent.futures
 from io import BytesIO
-from zipfile import ZipFile
-from urllib.parse import urlparse
-import requests
-import time
-
-# ------------------ Download Functions ------------------
-
-ZIP_URLS = {
-    "PV NUTS2": "https://zenodo.org/api/records/8340501/files/EMHIRES_PV_NUTS2.zip/content",
-    # Add other ZIPs if needed:
-    # "WIND ONSHORE NUTS2": "https://zenodo.org/api/records/8340501/files/EMHIRES_WIND_ONSHORE_NUTS2.zip/content",
-    # "ENSPRESO": "https://cidportal.jrc.ec.europa.eu/ftp/jrc-opendata/ENSPRESO/ENSPRESO_Integrated_Data.zip"
-}
-
-def fetch_zip_resource_bg(url: str, name: str, progress_key: str) -> ZipFile:
-    """Download a ZIP file in chunks and update session_state progress."""
-    response = requests.get(url, stream=True)
-    response.raise_for_status()
-    buffer = BytesIO()
-
-    total_size = int(response.headers.get("content-length", 0))
-    filename = urlparse(url).path.split("/")[-1] or f"{name}.zip"
-
-    downloaded = 0
-    start_time = time.time()
-
-    for chunk in response.iter_content(chunk_size=1_048_576):  # 1 MB
-        buffer.write(chunk)
-        downloaded += len(chunk)
-
-        # Update session_state progress
-        if progress_key in st.session_state:
-            st.session_state[progress_key][name] = {
-                "downloaded": downloaded,
-                "total": total_size,
-                "speed_mbps": (downloaded * 8 / 1e6) / max(time.time() - start_time, 1e-6)
-            }
-
-    buffer.seek(0)
-    return ZipFile(buffer)
-
-@st.cache_resource
-def get_executor():
-    return concurrent.futures.ProcessPoolExecutor(max_workers=3)
+from tool_modules.loading_data import ZIP_FILES, fetch_file_from_zip
+import concurrent.futures
 
 # ------------------ Main Streamlit Page ------------------
 
@@ -123,35 +81,46 @@ else:
     st.info("Session state is currently empty.")
 
 # --- Data Download Section ---
+
+
+st.title("⬇️ Download Time Series Data")
+
+# Executor for background downloads
+if "executor" not in st.session_state:
+    st.session_state.executor = concurrent.futures.ThreadPoolExecutor(max_workers=2)
+
+if "download_futures" not in st.session_state:
+    st.session_state.download_futures = {}
+
 if "archives" not in st.session_state:
+    st.session_state.archives = {}
 
-    if "download_futures" not in st.session_state:
-        st.session_state.download_progress = {name: {"downloaded": 0, "total": 1, "speed_mbps": 0} for name in ZIP_URLS}
-        st.session_state.download_futures = {}
+# Start downloads
+for name, info in ZIP_FILES.items():
+    if name not in st.session_state.archives and name not in st.session_state.download_futures:
+        if st.button(f"⬇️ Download {name}"):
+            future = st.session_state.executor.submit(
+    fetch_file_from_zip, info["url"], info["file"], name  
+)
+            st.session_state.download_futures[name] = future
+            st.rerun()
 
-    download_clicked = st.button("⬇️ Download data to start using profile load")
+# Show progress / completed
+for name, future in list(st.session_state.download_futures.items()):
+    if future.done():
+        try:
+            st.session_state.archives[name] = future.result()
+            st.success(f"✅ {name} downloaded and ready!")
+        except Exception as e:
+            st.error(f"❌ Failed to download {name}: {e}")
+        del st.session_state.download_futures[name]
+    else:
+        st.info(f"⏳ {name} is still downloading...")
 
-    if download_clicked:
-        # Submit each ZIP download
-        for name, url in ZIP_URLS.items():
-            st.session_state.download_futures[name] = get_executor().submit(
-                fetch_zip_resource_bg, url, name, "download_progress"
-            )
-
-# --- Show progress bars if downloads are in progress ---
-if "download_futures" in st.session_state:
-    all_done = True
-    for name, info in st.session_state.download_progress.items():
-        downloaded_mb = info["downloaded"] / 1024**2
-        total_mb = info["total"] / 1024**2
-        speed = info["speed_mbps"]
-        st.progress(min(downloaded_mb / max(total_mb, 1e-6), 1.0), text=f"{name}: {downloaded_mb:.1f}/{total_mb:.1f} MB ({speed:.1f} Mbps)")
-        if name in st.session_state.download_futures and not st.session_state.download_futures[name].done():
-            all_done = False
-
-    if all_done:
-        st.session_state.archives = {name: f.result() for name, f in st.session_state.download_futures.items()}
-        st.success("✅ All datasets downloaded and ready!")
-else:
-    if "archives" in st.session_state:
-        st.info("Time series data already loaded")
+# Preview
+# Preview summary with first 5 rows
+if st.session_state.archives:
+    st.write("### 📂 Available Archives")
+    for dataset, df in st.session_state.archives.items():
+        st.write(f"- **{dataset}**: {df.shape[0]} rows × {df.shape[1]} columns")
+        st.dataframe(df.head(5))

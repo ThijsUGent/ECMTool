@@ -2,67 +2,48 @@ import streamlit as st
 import requests
 from zipfile import ZipFile
 from io import BytesIO
+import pandas as pd
 import time
 from urllib.parse import urlparse
 
-# Available ZIP files (from Zenodo + ENSPRESO)
-zip_files = {
-    "PV NUTS2": "https://zenodo.org/api/records/8340501/files/EMHIRES_PV_NUTS2.zip/content",
-    # "WIND ONSHORE NUTS2": "https://zenodo.org/api/records/8340501/files/EMHIRES_WIND_ONSHORE_NUTS2.zip/content",
-    # "ENSPRESO": "https://cidportal.jrc.ec.europa.eu/ftp/jrc-opendata/ENSPRESO/ENSPRESO_Integrated_Data.zip"
+ZIP_FILES = {
+    "ENSPRESO": {
+        "url": "https://cidportal.jrc.ec.europa.eu/ftp/jrc-opendata/ENSPRESO/ENSPRESO_Integrated_Data.zip",
+        "file": "ENSPRESO_Integrated_NUTS2_Data.csv",
+    },
+    "WIND": {
+        "url": "https://zenodo.org/api/records/8340501/files/EMHIRES_WIND_ONSHORE_NUTS2.zip/content",
+        "file": "EMHIRES_WIND_NUTS2_June2019.csv",
+    },
+    "PV": {
+        "url": "https://zenodo.org/api/records/8340501/files/EMHIRES_PV_NUTS2.zip/content",
+        "file": "EMHIRES_PVGIS_TSh_CF_n2_19862015_reformatt.xlsx",
+    },
 }
 
 
-@st.cache_resource(show_spinner=False)
-def fetch_zip_resource_bg(url: str, name: str, progress_key: str) -> ZipFile:
+def fetch_file_from_zip(url: str, target_file: str, dataset_name: str) -> pd.DataFrame:
     """
-    Download a ZIP file in chunks, updating session_state progress.
+    Download a ZIP and return the target file as a DataFrame.
+    
+    dataset_name: "PV", "WIND", or "ENSPRESO" to select which columns to read.
     """
     response = requests.get(url, stream=True)
     response.raise_for_status()
-    buffer = BytesIO()
+    buffer = BytesIO(response.content)
 
-    total_size = int(response.headers.get("content-length", 0))
-    filename = urlparse(url).path.split("/")[-1] or f"{name}.zip"
-
-    downloaded = 0
-    start_time = time.time()
-
-    for chunk in response.iter_content(chunk_size=1_048_576):  # 1 MB
-        buffer.write(chunk)
-        downloaded += len(chunk)
-
-        # Update session_state progress
-        if progress_key in st.session_state:
-            st.session_state[progress_key][name] = {
-                "downloaded": downloaded,
-                "total": total_size,
-                "speed_mbps": (downloaded * 8 / 1e6) / max(time.time() - start_time, 1e-6)
-            }
-
-    buffer.seek(0)
-    return ZipFile(buffer)
-
-def load_archives() -> dict:
-    """
-    Load all configured ZIP archives and return a dictionary:
-    {
-        "PV NUTS2": { "file1.csv": <BytesIO>, ... },
-        "WIND ONSHORE NUTS2": { ... },
-        "ENSPRESO": { ... }
-    }
-    """
-    archives_dict = {}
-
-    for name, url in zip_files.items():
-        zip_file = fetch_zip_resource_bg(url)
-        files_dict = {}
-        for fname in zip_file.namelist():
-            if fname.endswith((".csv", ".xlsx")):
-                # Read each file into BytesIO (not DataFrame)
-                with zip_file.open(fname) as f:
-                    files_dict[fname] = BytesIO(f.read())
-        archives_dict[name] = files_dict
-
-    return archives_dict
-
+    with ZipFile(buffer) as zf:
+        if target_file not in zf.namelist():
+            raise FileNotFoundError(f"{target_file} not found in ZIP")
+        with zf.open(target_file) as f:
+            if target_file.endswith(".csv"):
+                return pd.read_csv(f, sep=";")
+            else:  # Excel
+                if dataset_name == "PV":
+                    # Keep only 'time_step' and a specific column like 'BE23'
+                    return pd.read_excel(f, usecols=lambda x: x == "time_step" or x in ["BE23"])
+                elif dataset_name == "WIND":
+                    # Keep only 'Time step' and a specific column like 'BE23'
+                    return pd.read_excel(f, usecols=lambda x: x in ["Time step", "BE23"])
+                else:
+                    return pd.read_excel(f)
