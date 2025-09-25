@@ -300,7 +300,7 @@ def solar_generation(country, energy_volume, year, NUTS2=None):
             if "archives" in st.session_state:
                 archives = st.session_state.archives
 
-                file_obj = archives["PV NUTS2"]["EMHIRES_PVGIS_TSh_CF_n2_19862015_reformatt.xlsx"]
+                file_obj = archives["PV"]["EMHIRES_PVGIS_TSh_CF_n2_19862015_reformatt.xlsx"]
                 file_obj.seek(0)  # rewind to start
                 df_all = pd.read_excel(file_obj, usecols=lambda x: x == "time_step" or x in NUTS2 )
             else :
@@ -362,7 +362,7 @@ def onshore_generation(country, energy_volume, NUTS2=None, year=None):
             if "archives" in st.session_state:
                 archives = st.session_state.archives
 
-                file_obj = archives["WIND ONSHORE NUTS2"]["EMHIRES_WIND_NUTS2_June2019.csv"]
+                file_obj = archives["WIND"]["EMHIRES_WIND_NUTS2_June2019.csv"]
                 file_obj.seek(0)  # rewind to start
                 df_all = pd.read_excel(file_obj, usecols=["Time step"] + NUTS2 )
             else :

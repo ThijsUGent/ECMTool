@@ -2,7 +2,6 @@ import streamlit as st
 import requests
 from zipfile import ZipFile
 from io import BytesIO
-import pandas as pd
 
 # Define the datasets
 ZIP_FILES = {
@@ -26,8 +25,10 @@ if "archives" not in st.session_state:
 
 st.title("⬇️ Download Time Series Data")
 
-def fetch_file_from_zip_with_progress(url: str, target_file: str, dataset_name: str):
-    """Download a ZIP file and return the target file as a DataFrame with progress."""
+def fetch_file_from_zip_to_bytes(url: str, target_file: str) -> BytesIO:
+    """
+    Download a ZIP file and return a BytesIO containing the target file.
+    """
     response = requests.get(url, stream=True)
     response.raise_for_status()
 
@@ -44,19 +45,15 @@ def fetch_file_from_zip_with_progress(url: str, target_file: str, dataset_name: 
             downloaded += len(chunk)
             percent = downloaded / total_length
             progress_bar.progress(percent)
-            status_text.text(f"Downloading... {percent*100:.1f}%")
+            status_text.text(f"Downloading {target_file}... {percent*100:.1f}%")
 
     buffer.seek(0)
+
+    # Extract the target file into BytesIO
     with ZipFile(buffer) as zf:
         if target_file not in zf.namelist():
             raise FileNotFoundError(f"{target_file} not found in ZIP")
         with zf.open(target_file) as f:
-            if target_file.endswith(".csv"):
-                return pd.read_csv(f, sep=";")
-            else:
-                if dataset_name == "PV":
-                    return pd.read_excel(f, usecols=lambda x: x == "time_step" or x in ["BE23"])
-                elif dataset_name == "WIND":
-                    return pd.read_excel(f, usecols=lambda x: x in ["Time step", "BE23"])
-                else:
-                    return pd.read_excel(f)
+            file_bytes = BytesIO(f.read())
+
+    return file_bytes
