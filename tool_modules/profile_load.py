@@ -39,7 +39,11 @@ def profile_load():
         # Show what's inside the archives
     st.subheader("Available Archives")
     st.write("Current archive keys:", list(archives.keys()))
+    
+    st.write(archives[PV])
         
+        
+    st.stop()
 
 
     # col1 = selection and parameters, col2 = plot
