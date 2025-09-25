@@ -36,7 +36,10 @@ required_keys = {"WIND", "PV", "ENSPRESO"}
     # --- Step 2: once archives are loaded, show the rest of the app ---
     archives = st.session_state.archives
     
-    
+        # Show what's inside the archives
+    st.subheader("Available Archives")
+    st.write("Current archive keys:", list(archives.keys()))
+        
 
 
     # col1 = selection and parameters, col2 = plot
