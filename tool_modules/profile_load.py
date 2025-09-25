@@ -40,6 +40,8 @@ def profile_load():
     st.subheader("Available Archives")
     st.write("Current archive keys:", list(archives.keys()))
     
+    st.write(archives["PV"].keys())
+    
     df = pd.read_excel(archives["PV"])
 
     # Show only the head
