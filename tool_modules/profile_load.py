@@ -40,7 +40,7 @@ def profile_load():
     st.subheader("Available Archives")
     st.write("Current archive keys:", list(archives.keys()))
     
-    st.write(archives[PV])
+    st.write(archives["PV"])
         
         
     st.stop()
