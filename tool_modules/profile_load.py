@@ -40,9 +40,9 @@ def profile_load():
     st.subheader("Available Archives")
     st.write("Current archive keys:", list(archives.keys()))
     
-    st.write(archives["PV"]["EMHIRES_PVGIS_TSh_CF_n2_19862015_reformatt.xlsx"])
-    
-    df = pd.read_excel(archives["PV"])
+    f=archives["PV"]["EMHIRES_PVGIS_TSh_CF_n2_19862015_reformatt.xlsx"]
+    f.seek(0)
+    df = pd.read_excel(f)
 
     # Show only the head
     st.subheader("PV Archive Preview")
