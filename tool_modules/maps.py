@@ -496,6 +496,7 @@ def map_per_pathway():
                 emission, unit_CO2 = energy_convert(emission, "t", elec=False)
                 st.write(
                     f"Direct CO2 emissions per annum : {emission:.2f} {unit_CO2}")
+            st.write(st.session_state["map_view_state"])
             with st.expander("Time profiles"):
                 # Step 1: Extract NUTS3 codes 
                 #2013
@@ -1019,13 +1020,7 @@ def _mapping_chart_per_ener_feed_cluster(gdf, color_map, unit, extra_layer = Non
             map_style=None,
         )
 
-        # Update session_state when the user interacts or map loads
-        if event.view_state:
-            st.session_state.map_view_state.update({
-                "latitude": event.view_state.latitude,
-                "longitude": event.view_state.longitude,
-                "zoom": event.view_state.zoom
-            })
+
 
         event = st.pydeck_chart(
             deck, selection_mode="single-object", on_select="rerun")
@@ -1256,13 +1251,6 @@ def _mapping_chart_per_ener_feed_sites(gdf, color_choice, gdf_layer,):
             tooltip={"text": "Cluster: {cluster}\nSite Name: {site_name}"},
             map_style=None
         )
-        # Update session_state when the user interacts or map loads
-        if event.view_state:
-            st.session_state.map_view_state.update({
-                "latitude": event.view_state.latitude,
-                "longitude": event.view_state.longitude,
-                "zoom": event.view_state.zoom
-            })
             
         event = st.pydeck_chart(
             chart,
