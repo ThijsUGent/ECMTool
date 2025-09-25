@@ -114,15 +114,7 @@ def fetch_file_from_zip_with_progress(url: str, target_file: str, dataset_name: 
 
 for name, info in ZIP_FILES.items():
     if name not in st.session_state.archives:
-        if st.button(f"⬇️ Download {name}"):
-            df = fetch_file_from_zip_with_progress(info["url"], info["file"], name)
-            st.session_state.archives[name] = df
-            st.success(f"{name} downloaded! Shape: {df.shape}")
-            st.dataframe(df.head())
-
-# Preview already downloaded datasets
-if st.session_state.archives:
-    st.write("### 📂 Available Archives")
-    for dataset, df in st.session_state.archives.items():
-        st.write(f"- **{dataset}**: {df.shape[0]} rows × {df.shape[1]} columns")
-        st.dataframe(df.head(5))
+        st.session_state.archives[name] = {}
+        file_obj = fetch_file_from_zip_to_bytes(info["url"], info["file"])
+        st.session_state.archives[name][info["file"]] = file_obj
+        st.success(f"{name} downloaded and ready!")
