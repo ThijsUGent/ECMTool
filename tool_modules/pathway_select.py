@@ -119,7 +119,6 @@ def select_page():
     if "df_perton_ALL_sector" not in st.session_state: 
         st.session_state.df_perton_ALL_sector = perton_ALL_no_mix_AIDRES
 
-
     
 
     # Prechoice radio doc link
@@ -216,6 +215,7 @@ def select_page():
                 else:
                     # Combine all selected routes into a single DataFrame
                     combined_df = pd.concat(dict_routes_selected.values(), ignore_index=True)
+
                     
                     # Export to text using your custom function
                     exported_txt = export_to_txt(combined_df)

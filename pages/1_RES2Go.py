@@ -33,6 +33,7 @@ if "tool_subsection_prechoice_from_doc" not in st.session_state:
     st.session_state["tool_subsection_prechoice_from_doc"] = 0
 
 tool_section_prechoice = st.session_state.get("tool_section_prechoice", 0)
+
 tool_subsection_prechoice = st.session_state.get(
     "tool_subsection_prechoice", 0)
 tool_subsection_prechoice_from_doc = st.session_state.get(
@@ -43,7 +44,7 @@ if "map_view_state" not in st.session_state:
     st.session_state.map_view_state = {
         "latitude": 50.85,   # default lat
         "longitude": 4.35,   # default lon
-        "zoom": 5}
+        "zoom": 3}
 
 # Sidebar tool section
 tool_section_choices = ["Pathway",

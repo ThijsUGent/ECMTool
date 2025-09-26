@@ -133,6 +133,9 @@ def edit_dataframe_selection_and_weighting(df_product, columns_to_show_selection
             st.text("⚖️ Weight changes")
             found_weight_change = False
             for route in edited_selected_df["route_name"].unique():
+                if route == None or route == "":
+                    st.error("Enter route name")
+                    st.stop()
                 base_route = route.replace(" modified", "")
                 edited_row = edited_selected_df[edited_selected_df["route_name"] == route]
                 original_row = selected_df[selected_df["route_name"] == base_route]
@@ -294,18 +297,9 @@ def upload_path(df, columns_to_show_selection):
         df_upload = import_to_dataframe(uploaded_file)
         # Append new sectors
         _append_new_sectors(df_upload)
-        # Get only new rows where 'route_name' is not already in the existing DataFrame
-        new_rows = st.session_state.df_new_sector[
-            ~st.session_state.df_new_sector['route_name'].isin(st.session_state.df_perton_ALL_sector['route_name'])
-        ]
 
-        # Concatenate safely
-        st.session_state.df_perton_ALL_sector = pd.concat(
-            [st.session_state.df_perton_ALL_sector, new_rows],
-            ignore_index=True
-        )
 
-        dict_routes_selected, modified = _edit_pathway_ui(st.session_state.df_perton_ALL_sector, df_upload, sorted(df_upload["sector_name"].unique()), columns_to_show_selection)
+        dict_routes_selected, modified = _edit_pathway_ui(df_upload, df_upload, sorted(df_upload["sector_name"].unique()), columns_to_show_selection)
         if modified:
             pathway_name += " modified"
 
@@ -396,8 +390,14 @@ def _edit_pathway_ui(df, df_upload, sectors_list, columns_to_show_selection, mod
                             st.session_state[product_list_key].append(new_product)
                             st.rerun()
 
-                # Extend product list with newly added products
-                all_products.extend(st.session_state[product_list_key])
+                # Merge session state product list with DataFrame products
+                all_products = df[df["sector_name"] == sector]["product_name"].unique().tolist()
+                session_products = st.session_state.get(product_list_key, [])
+
+                # Merge without duplicates
+                for prod in session_products:
+                    if prod not in all_products:
+                        all_products.append(prod)
 
                 # Edit each product
                 for product in all_products:
