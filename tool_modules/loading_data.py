@@ -9,14 +9,14 @@ ZIP_FILES = {
         "url": "https://cidportal.jrc.ec.europa.eu/ftp/jrc-opendata/ENSPRESO/ENSPRESO_Integrated_Data.zip",
         "file": "ENSPRESO_Integrated_NUTS2_Data.csv",
     },
-    "WIND": {
-        "url": "https://zenodo.org/api/records/8340501/files/EMHIRES_WIND_ONSHORE_NUTS2.zip/content",
-        "file": "EMHIRES_WIND_NUTS2_June2019.xlsx",
-    },
-    "PV": {
-        "url": "https://zenodo.org/api/records/8340501/files/EMHIRES_PV_NUTS2.zip/content",
-        "file": "EMHIRES_PVGIS_TSh_CF_n2_19862015_reformatt.xlsx",
-    },
+    # "WIND": {
+    #     "url": "https://zenodo.org/api/records/8340501/files/EMHIRES_WIND_ONSHORE_NUTS2.zip/content",
+    #     "file": "EMHIRES_WIND_NUTS2_June2019.xlsx",
+    # },
+    # "PV": {
+    #     "url": "https://zenodo.org/api/records/8340501/files/EMHIRES_PV_NUTS2.zip/content",
+    #     "file": "EMHIRES_PVGIS_TSh_CF_n2_19862015_reformatt.xlsx",
+    # },
 }
 
 # Initialize session state
