@@ -157,25 +157,36 @@ def edit_dataframe_selection_and_weighting(df_product, columns_to_show_selection
                     for col in edited_row.columns:
                         if col in ["route_weight", "route_name"] or col not in original_row.columns:
                             continue
-                        old_value = original_row[col].values[0]
-                        new_value = edited_row[col].values[0]
-                        if old_value != new_value:
-                            st.write(f"- {base_route} *modified* | **{col}**: `{old_value}` → `{new_value}`")
-                            found_param_change = True
+                        old_value = original_row[col].iloc[0]
+                        new_value = edited_row[col].iloc[0]
+                        # safe comparison
+                        if not (pd.isna(old_value) and pd.isna(new_value)):
+                            if old_value != new_value:
+                                st.write(f"- {base_route} *modified* | **{col}**: `{old_value}` → `{new_value}`")
+                                found_param_change = True
             if not found_param_change:
                 st.write("No parameter changes.")
 
-    # --- Append new rows to global df_perton_ALL_sector ---
+    # --- Append new rows to global df_perton_ALL_sector safely ---
     if "df_perton_ALL_sector" in st.session_state:
-        new_rows = edited_selected_df[
-            ~edited_selected_df["route_name"].isin(st.session_state.df_perton_ALL_sector["route_name"])
-        ]
-        if not new_rows.empty:
-            new_rows = st.session_state.df_new_sector[
-            ~st.session_state.df_new_sector['route_name'].isin(st.session_state.df_perton_ALL_sector['route_name'])
-        ]
+        # Ensure df_perton_ALL_sector has 'route_name' column
+        if "route_name" not in st.session_state.df_perton_ALL_sector.columns:
+            st.warning("'route_name' missing in df_perton_ALL_sector. Skipping append.")
+            new_rows = pd.DataFrame()  # empty
+        else:
+            # Filter edited_selected_df to rows not already in df_perton_ALL_sector
+            if "route_name" in edited_selected_df.columns:
+                new_rows = edited_selected_df[
+                    ~edited_selected_df["route_name"].isin(
+                        st.session_state.df_perton_ALL_sector["route_name"]
+                    )
+                ]
+            else:
+                st.warning("'route_name' missing in edited_selected_df. No rows to append.")
+                new_rows = pd.DataFrame()  # empty
 
-            # Concatenate safely
+        # Append only if there are new rows
+        if not new_rows.empty:
             st.session_state.df_perton_ALL_sector = pd.concat(
                 [st.session_state.df_perton_ALL_sector, new_rows],
                 ignore_index=True
